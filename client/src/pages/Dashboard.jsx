@@ -252,8 +252,6 @@ function Dashboard() {
         <Typography color="text.secondary" sx={{ mb: 4 }}>
           Manage your tasks and stay productive.
         </Typography>
-
-        {/* Success Message */}
         {successMessage && (
           <Alert
             severity="success"
@@ -263,7 +261,6 @@ function Dashboard() {
             {successMessage}
           </Alert>
         )}
-
         {/* Action Error */}
         {actionError && (
           <Alert
@@ -274,7 +271,6 @@ function Dashboard() {
             {actionError}
           </Alert>
         )}
-
         {loading ? (
           <Box
             sx={{
@@ -473,7 +469,6 @@ function Dashboard() {
             )}
           </>
         )}
-
         {/* ADD TASK DIALOG */}
         <Dialog
           open={dialogType === "add"}
@@ -555,7 +550,6 @@ function Dashboard() {
             </DialogActions>
           </Box>
         </Dialog>
-
         {/* EDIT TASK DIALOG */}
         <Dialog
           open={dialogType === "edit"}

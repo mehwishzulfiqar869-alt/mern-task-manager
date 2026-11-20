@@ -40,7 +40,6 @@ export function TaskProvider({ children }) {
     };
   }, []);
 
-  // Add a new task
   const addTask = async (taskData) => {
     try {
       setActionError("");

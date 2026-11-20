@@ -88,7 +88,6 @@ export const signup = async (req, res) => {
   } catch (err) {
     console.error("Signup error:", err);
 
-    // Handle duplicate key error
     if (err.code === 11000) {
       return res.status(409).json({
         message: "Email is already registered",

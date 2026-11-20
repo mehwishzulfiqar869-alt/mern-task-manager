@@ -87,6 +87,7 @@ function Dashboard() {
     setDialogType("add");
   };
 
+  // Close Add Task dialog
   const handleClose = () => {
     if (submitting) return;
 
@@ -94,6 +95,7 @@ function Dashboard() {
     setFormError("");
   };
 
+  // Create a new task using Context
   const handleSubmit = async (event) => {
     event.preventDefault();
 

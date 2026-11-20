@@ -8,7 +8,6 @@ const validateEmail = (email) => {
   return emailRegex.test(email);
 };
 
-// Password validation for new accounts
 const validatePassword = (password) => {
   const passwordRegex =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])\S{8,}$/;
@@ -16,7 +15,6 @@ const validatePassword = (password) => {
   return passwordRegex.test(password);
 };
 
-// SIGNUP
 export const signup = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -66,22 +64,18 @@ export const signup = async (req, res) => {
       });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user in MongoDB
     const user = await User.create({
       name: normalizedName,
       email: normalizedEmail,
       password: hashedPassword,
     });
 
-    // Generate JWT
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
-    // Send response
     return res.status(201).json({
       message: "User added successfully",
       token,

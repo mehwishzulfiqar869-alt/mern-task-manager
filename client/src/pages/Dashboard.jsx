@@ -301,7 +301,7 @@ function Dashboard() {
           </Alert>
         )}
 
-        //Action Error 
+        
         {actionError && (
           <Alert
             severity="error"
@@ -399,7 +399,7 @@ function Dashboard() {
     </Button>
 
     <Button variant="contained" onClick={handleOpen}>
-      + Add Task
+       Add Task
     </Button>
   </Stack>
 </Stack>

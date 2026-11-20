@@ -5,6 +5,7 @@ import cors from "cors";
 import { connectDB } from "./config/db.js";
 import authRoute from "./routes/authRoute.js";
 import taskRoutes from "./routes/taskRoute.js";
+import adminRoute from "./routes/adminRoute.js";
 
 dotenv.config();
 
@@ -12,6 +13,8 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+
 
 // Test route
 app.get("/test", (req, res) => {
@@ -21,6 +24,7 @@ app.get("/test", (req, res) => {
 // Authentication routes
 app.use("/api/auth", authRoute);
 app.use("/api/tasks", taskRoutes);
+app.use("/api/admin", adminRoute);
 
 const serverStart = async () => {
   await connectDB();

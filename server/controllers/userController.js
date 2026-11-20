@@ -1,3 +1,4 @@
+
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
@@ -15,6 +16,7 @@ const validatePassword = (password) => {
   return passwordRegex.test(password);
 };
 
+// SIGNUP
 export const signup = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -70,6 +72,7 @@ export const signup = async (req, res) => {
       name: normalizedName,
       email: normalizedEmail,
       password: hashedPassword,
+      role: "user",
     });
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
@@ -83,6 +86,7 @@ export const signup = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
       },
     });
   } catch (err) {
@@ -153,6 +157,7 @@ export const login = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
       },
     });
   } catch (err) {

@@ -1,6 +1,8 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTasks } from "../context/TaskContext";
+import TaskBoard from "../components/TaskBoard";
 
 import {
   Box,
@@ -41,6 +43,8 @@ function Dashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [updating, setUpdating] = useState(false);
 
+  const [viewMode, setViewMode] = useState("list");
+
   const [dialogType, setDialogType] = useState(null);
   const [editingId, setEditingId] = useState(null);
 
@@ -58,6 +62,30 @@ function Dashboard() {
 
   const [formData, setFormData] = useState(initialFormData);
   const [editData, setEditData] = useState(initialFormData);
+
+  // Validate title and description
+  const validateTaskFields = ({ title, description }) => {
+    const cleanTitle = title.trim();
+    const cleanDescription = description.trim();
+
+    if (!cleanTitle) {
+      return "Task title is required.";
+    }
+
+    if (cleanTitle.length < 3) {
+      return "Task title must be at least 3 characters.";
+    }
+
+    if (!cleanDescription) {
+      return "Task description is required.";
+    }
+
+    if (cleanDescription.length < 5) {
+      return "Description must be at least 5 characters.";
+    }
+
+    return "";
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -99,8 +127,10 @@ function Dashboard() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!formData.title.trim()) {
-      setFormError("Task title is required");
+    const validationError = validateTaskFields(formData);
+
+    if (validationError) {
+      setFormError(validationError);
       return;
     }
 
@@ -122,7 +152,9 @@ function Dashboard() {
       setSuccessMessage("Task created successfully!");
     } catch (err) {
       setActionError("");
-      setFormError(err.response?.data?.message || "Failed to create task");
+      setFormError(
+        err.response?.data?.message || "Failed to create task"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -151,7 +183,7 @@ function Dashboard() {
     }
   };
 
-  // Open Edit Task dialog
+  
   const handleEditOpen = (task) => {
     setEditingId(task._id);
     setEditError("");
@@ -171,7 +203,7 @@ function Dashboard() {
     setDialogType("edit");
   };
 
-  // Close Edit Task dialog
+  
   const handleEditClose = () => {
     if (updating) return;
 
@@ -180,12 +212,14 @@ function Dashboard() {
     setEditError("");
   };
 
-  // Update a task using Context
+  
   const handleUpdate = async (event) => {
     event.preventDefault();
 
-    if (!editData.title.trim()) {
-      setEditError("Task title is required");
+    const validationError = validateTaskFields(editData);
+
+    if (validationError) {
+      setEditError(validationError);
       return;
     }
 
@@ -207,20 +241,24 @@ function Dashboard() {
       setSuccessMessage("Task updated successfully!");
     } catch (err) {
       setActionError("");
-      setEditError(err.response?.data?.message || "Failed to update task");
+      setEditError(
+        err.response?.data?.message || "Failed to update task"
+      );
     } finally {
       setUpdating(false);
     }
   };
 
-  // Task statistics
-  const pendingTasks = tasks.filter((task) => task.status === "pending").length;
+  
+  const pendingTasks = tasks.filter(
+    (task) => task.status === "pending"
+  ).length;
 
   const completedTasks = tasks.filter(
     (task) => task.status === "completed",
   ).length;
 
-  // Filter tasks
+  
   const filteredTasks = tasks.filter((task) => {
     if (activeFilter === "all") {
       return true;
@@ -252,6 +290,7 @@ function Dashboard() {
         <Typography color="text.secondary" sx={{ mb: 4 }}>
           Manage your tasks and stay productive.
         </Typography>
+
         {successMessage && (
           <Alert
             severity="success"
@@ -261,7 +300,8 @@ function Dashboard() {
             {successMessage}
           </Alert>
         )}
-        {/* Action Error */}
+
+        //Action Error 
         {actionError && (
           <Alert
             severity="error"
@@ -271,6 +311,7 @@ function Dashboard() {
             {actionError}
           </Alert>
         )}
+
         {loading ? (
           <Box
             sx={{
@@ -285,7 +326,7 @@ function Dashboard() {
           <Alert severity="error">{error}</Alert>
         ) : (
           <>
-            {/* Task Statistics */}
+             
             <Box
               sx={{
                 display: "grid",
@@ -298,7 +339,9 @@ function Dashboard() {
               }}
             >
               <Paper sx={{ p: 3, borderRadius: 3 }}>
-                <Typography color="text.secondary">Total Tasks</Typography>
+                <Typography color="text.secondary">
+                  Total Tasks
+                </Typography>
 
                 <Typography variant="h4" fontWeight="bold">
                   {tasks.length}
@@ -306,7 +349,9 @@ function Dashboard() {
               </Paper>
 
               <Paper sx={{ p: 3, borderRadius: 3 }}>
-                <Typography color="text.secondary">Pending Tasks</Typography>
+                <Typography color="text.secondary">
+                  Pending Tasks
+                </Typography>
 
                 <Typography variant="h4" color="warning.main">
                   {pendingTasks}
@@ -314,7 +359,9 @@ function Dashboard() {
               </Paper>
 
               <Paper sx={{ p: 3, borderRadius: 3 }}>
-                <Typography color="text.secondary">Completed Tasks</Typography>
+                <Typography color="text.secondary">
+                  Completed Tasks
+                </Typography>
 
                 <Typography variant="h4" color="success.main">
                   {completedTasks}
@@ -322,27 +369,43 @@ function Dashboard() {
               </Paper>
             </Box>
 
-            {/* Tasks Heading and Add Button */}
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
-              sx={{ mb: 3, width: "100%" }}
-            >
-              <Typography variant="h5" fontWeight="bold">
-                My Tasks
-              </Typography>
+<Stack
+  direction={{ xs: "column", sm: "row" }}
+  justifyContent="space-between"
+  alignItems={{ xs: "stretch", sm: "center" }}
+  spacing={2}
+  sx={{ mb: 3, width: "100%" }}
+>
+  <Typography variant="h5" fontWeight="bold">
+    My Tasks
+  </Typography>
 
-              <Button
-                variant="contained"
-                onClick={handleOpen}
-                sx={{ ml: "auto" }}
-              >
-                + Add Task
-              </Button>
-            </Stack>
+  <Stack direction="row" spacing={1} flexWrap="wrap">
+    <Button
+      variant={viewMode === "list" ? "contained" : "outlined"}
+      onClick={() => setViewMode("list")}
+    >
+      List View
+    </Button>
 
-            {/* Task Filters */}
+    <Button
+      variant={viewMode === "board" ? "contained" : "outlined"}
+      onClick={() => {
+        setViewMode("board");
+        setActiveFilter("all");
+      }}
+    >
+      Board View
+    </Button>
+
+    <Button variant="contained" onClick={handleOpen}>
+      + Add Task
+    </Button>
+  </Stack>
+</Stack>
+
+
+             
             <Stack
               direction="row"
               spacing={1}
@@ -373,8 +436,19 @@ function Dashboard() {
               </Button>
             </Stack>
 
-            {/* Display Tasks */}
-            {tasks.length === 0 ? (
+            
+
+           {viewMode === "board" ? (
+  <TaskBoard
+    tasks={tasks}
+    updateTask={updateTask}
+    onEdit={handleEditOpen}
+    onDelete={handleDelete}
+    deletingId={deletingId}
+  />
+) : (
+  <>
+    {tasks.length === 0 ? (
               <Paper sx={{ p: 4, textAlign: "center" }}>
                 <Typography color="text.secondary">
                   You don't have any tasks yet. Add your first task!
@@ -469,7 +543,12 @@ function Dashboard() {
             )}
           </>
         )}
-        {/* ADD TASK DIALOG */}
+
+  </>
+)}
+
+            
+        
         <Dialog
           open={dialogType === "add"}
           onClose={handleClose}
@@ -490,6 +569,7 @@ function Dashboard() {
                   onChange={handleChange}
                   fullWidth
                   required
+                  inputProps={{ minLength: 3 }}
                 />
 
                 <TextField
@@ -500,6 +580,8 @@ function Dashboard() {
                   fullWidth
                   multiline
                   rows={3}
+                  required
+                  inputProps={{ minLength: 5 }}
                 />
 
                 <TextField
@@ -550,6 +632,7 @@ function Dashboard() {
             </DialogActions>
           </Box>
         </Dialog>
+
         {/* EDIT TASK DIALOG */}
         <Dialog
           open={dialogType === "edit"}
@@ -571,6 +654,7 @@ function Dashboard() {
                   onChange={handleEditChange}
                   fullWidth
                   required
+                  inputProps={{ minLength: 3 }}
                 />
 
                 <TextField
@@ -581,6 +665,8 @@ function Dashboard() {
                   fullWidth
                   multiline
                   rows={3}
+                  required
+                  inputProps={{ minLength: 5 }}
                 />
 
                 <TextField

@@ -406,11 +406,7 @@ function Dashboard() {
 
 
              
-            <Stack
-              direction="row"
-              spacing={1}
-              flexWrap="wrap"
-              sx={{ mb: 3, rowGap: 1 }}
+            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 3, rowGap: 1 }}
             >
               <Button
                 variant={activeFilter === "all" ? "contained" : "outlined"}
@@ -439,13 +435,7 @@ function Dashboard() {
             
 
            {viewMode === "board" ? (
-  <TaskBoard
-    tasks={tasks}
-    updateTask={updateTask}
-    onEdit={handleEditOpen}
-    onDelete={handleDelete}
-    deletingId={deletingId}
-  />
+  <TaskBoard tasks={tasks} updateTask={updateTask}onEdit={handleEditOpen} onDelete={handleDelete} deletingId={deletingId}/>
 ) : (
   <>
     {tasks.length === 0 ? (
@@ -465,14 +455,8 @@ function Dashboard() {
                 {filteredTasks.map((task) => (
                   <Paper
                     key={task._id}
-                    sx={{
-                      p: 3,
-                      borderRadius: 3,
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                      gap: 2,
+                    sx={{p: 3,borderRadius: 3,display: "flex",justifyContent: "space-between",alignItems: "center",
+                      flexWrap: "wrap", gap: 2,
                     }}
                   >
                     <Box sx={{ minWidth: 0, flex: 1 }}>
@@ -493,20 +477,19 @@ function Dashboard() {
                           Due: {new Date(task.dueDate).toLocaleDateString()}
                         </Typography>
                       )}
+
+                      {task.approvalStatus === "rejected" &&
+                        task.rejectionReason && (
+                          <Alert severity="error" sx={{ mt: 2 }}>
+                            <strong>Admin Feedback:</strong> {task.rejectionReason}
+                          </Alert>
+                        )}
                     </Box>
 
                     <Stack
-                      direction="row"
-                      spacing={1}
-                      alignItems="center"
-                      flexWrap="wrap"
-                    >
+                      direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                       <Chip
-                        label={task.priority}
-                        color={
-                          task.priority === "high"
-                            ? "error"
-                            : task.priority === "medium"
+                        label={task.priority} color={task.priority === "high" ? "error": task.priority === "medium"
                               ? "warning"
                               : "success"
                         }
@@ -519,20 +502,23 @@ function Dashboard() {
                         }
                       />
 
+                        <Chip
+                            label={`Admin Review: ${task.approvalStatus || "pending"}`}
+                            color={
+                              task.approvalStatus === "approved"? "success": task.approvalStatus === "rejected" ? "error" : "warning"
+                            }
+                          />
+
+
                       <Button
-                        variant="outlined"
-                        color="primary"
-                        onClick={() => handleEditOpen(task)}
+                        variant="outlined"color="primary"onClick={() => handleEditOpen(task)}
                         disabled={deletingId === task._id}
                       >
                         Edit
                       </Button>
 
-                      <Button
-                        color="error"
-                        variant="outlined"
-                        disabled={deletingId === task._id}
-                        onClick={() => handleDelete(task._id)}
+                      <Button color="error" variant="outlined" disabled={deletingId === task._id}
+                      onClick={() => handleDelete(task._id)}
                       >
                         {deletingId === task._id ? "Deleting..." : "Delete"}
                       </Button>
@@ -570,6 +556,7 @@ function Dashboard() {
                   fullWidth
                   required
                   inputProps={{ minLength: 3 }}
+                 
                 />
 
                 <TextField
@@ -588,7 +575,7 @@ function Dashboard() {
                   select
                   label="Status"
                   name="status"
-                  value={formData.status}
+                  value={editData.status}
                   onChange={handleChange}
                   fullWidth
                 >
@@ -633,7 +620,7 @@ function Dashboard() {
           </Box>
         </Dialog>
 
-        {/* EDIT TASK DIALOG */}
+        
         <Dialog
           open={dialogType === "edit"}
           onClose={handleEditClose}

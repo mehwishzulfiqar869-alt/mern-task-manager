@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import User from "../models/User.js";
 import Task from "../models/task.js";
 import bcrypt from "bcryptjs";
+import { attachmentMetadata, removeUploadedFiles } from "../utils/attachments.js";
 
 export const getAllUsers = async (req, res) => {
   try {
@@ -197,12 +198,14 @@ export const assignTask = async (req, res) => {
     } = req.body;
 
     if (!mongoose.isValidObjectId(userId)) {
+      await removeUploadedFiles(req.files);
       return res.status(400).json({
         message: "Invalid user ID",
       });
     }
    
     if (!title?.trim() || !description?.trim() || !dueDate) {
+      await removeUploadedFiles(req.files);
       return res.status(400).json({
         message: "Title, description, and due date are required",
       });
@@ -213,6 +216,7 @@ export const assignTask = async (req, res) => {
       priority &&
       !["low", "medium", "high"].includes(priority)
     ) {
+      await removeUploadedFiles(req.files);
       return res.status(400).json({
         message: "Priority must be low, medium, or high",
       });
@@ -222,6 +226,7 @@ export const assignTask = async (req, res) => {
     const assignedUser = await User.findById(userId);
 
     if (!assignedUser) {
+      await removeUploadedFiles(req.files);
       return res.status(404).json({
         message: "Assigned user not found",
       });
@@ -241,6 +246,7 @@ export const assignTask = async (req, res) => {
       rejectionReason: "",
       reviewedBy: req.user.id,
       reviewedAt: new Date(),
+      attachments: attachmentMetadata(req.files, req.user.id),
     });
 
     await task.populate("user", "name email");
@@ -251,6 +257,7 @@ export const assignTask = async (req, res) => {
       task,
     });
   } catch (error) {
+    await removeUploadedFiles(req.files);
     console.error("Assign task error:", error.message);
 
     res.status(400).json({

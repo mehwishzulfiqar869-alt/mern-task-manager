@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTasks } from "../context/TaskContext";
 import TaskBoard from "../components/TaskBoard";
+import AttachmentPicker from "../components/AttachmentPicker";
+import AttachmentList from "../components/AttachmentList";
 
 import {
   Box,
@@ -62,6 +64,8 @@ function Dashboard() {
 
   const [formData, setFormData] = useState(initialFormData);
   const [editData, setEditData] = useState(initialFormData);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [removedAttachments, setRemovedAttachments] = useState([]);
 
   // Validate title and description
   const validateTaskFields = ({ title, description }) => {
@@ -112,6 +116,7 @@ function Dashboard() {
     setActionError("");
     setSuccessMessage("");
     setFormData(initialFormData);
+    setSelectedFiles([]);
     setDialogType("add");
   };
 
@@ -140,12 +145,13 @@ function Dashboard() {
       setActionError("");
       setSuccessMessage("");
 
-      await addTask({
-        ...formData,
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        dueDate: formData.dueDate || undefined,
-      });
+      const payload = new FormData();
+      payload.append("title", formData.title.trim());
+      payload.append("description", formData.description.trim());
+      payload.append("priority", formData.priority);
+      if (formData.dueDate) payload.append("dueDate", formData.dueDate);
+      selectedFiles.forEach((file) => payload.append("attachments", file));
+      await addTask(payload);
 
       setFormData(initialFormData);
       setDialogType(null);
@@ -199,6 +205,8 @@ function Dashboard() {
         ? new Date(task.dueDate).toISOString().split("T")[0]
         : "",
     });
+    setSelectedFiles([]);
+    setRemovedAttachments([]);
 
     setDialogType("edit");
   };
@@ -229,12 +237,13 @@ function Dashboard() {
       setActionError("");
       setSuccessMessage("");
 
-      await updateTask(editingId, {
-        ...editData,
-        title: editData.title.trim(),
-        description: editData.description.trim(),
-        dueDate: editData.dueDate || undefined,
+      const payload = new FormData();
+      Object.entries({ ...editData, title: editData.title.trim(), description: editData.description.trim() }).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) payload.append(key, value);
       });
+      payload.append("removeAttachmentIds", JSON.stringify(removedAttachments));
+      selectedFiles.forEach((file) => payload.append("attachments", file));
+      await updateTask(editingId, payload);
 
       setDialogType(null);
       setEditingId(null);
@@ -467,6 +476,7 @@ function Dashboard() {
                       <Typography color="text.secondary">
                         {task.description}
                       </Typography>
+                      <AttachmentList taskId={task._id} attachments={task.attachments} />
 
                       {task.dueDate && (
                         <Typography
@@ -606,6 +616,7 @@ function Dashboard() {
                     inputProps={{ "aria-label": "Due Date" }}
                   />
                 </Box>
+                <AttachmentPicker files={selectedFiles} onChange={setSelectedFiles} />
               </Stack>
             </DialogContent>
 
@@ -686,6 +697,15 @@ function Dashboard() {
                     inputProps={{ "aria-label": "Due Date" }}
                   />
                 </Box>
+                {(() => {
+                  const task = tasks.find((item) => item._id === editingId);
+                  const retained = (task?.attachments || []).filter((item) => !removedAttachments.includes(item.filename));
+                  return <>
+                    <AttachmentList taskId={editingId} attachments={retained} />
+                    {retained.map((item) => <Button key={item.filename} size="small" color="error" onClick={() => setRemovedAttachments((ids) => [...ids, item.filename])}>Remove {item.originalName}</Button>)}
+                    <AttachmentPicker files={selectedFiles} onChange={setSelectedFiles} maxExisting={retained.length} />
+                  </>;
+                })()}
               </Stack>
             </DialogContent>
 

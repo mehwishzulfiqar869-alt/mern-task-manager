@@ -13,6 +13,7 @@ import {
   Chip,
   Button,
 } from "@mui/material";
+import AttachmentList from "./AttachmentList";
 
 const columns = [
   { id: "pending", title: "Pending" },
@@ -56,6 +57,7 @@ function TaskCard({ task, onEdit, onDelete, deletingId }) {
         <Typography variant="body2" color="text.secondary">
           {task.description}
         </Typography>
+        <AttachmentList taskId={task._id} attachments={task.attachments} />
 
         {task.dueDate && (
           <Typography variant="caption" color="text.secondary">

@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import API from "../../api/axios";
+import AttachmentPicker from "../AttachmentPicker";
 
 import {
   Dialog,
@@ -29,6 +30,7 @@ function AssignTaskDialog({ open, onClose, users, onAssigned }) {
   const [formData, setFormData] = useState(initialFormData);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [files, setFiles] = useState([]);
 
   
   const regularUsers = users.filter((user) => user.role === "user");
@@ -46,6 +48,7 @@ function AssignTaskDialog({ open, onClose, users, onAssigned }) {
     if (submitting) return;
 
     setFormData(initialFormData);
+    setFiles([]);
     setError("");
     onClose();
   };
@@ -78,13 +81,11 @@ function AssignTaskDialog({ open, onClose, users, onAssigned }) {
     setSubmitting(true);
 
     try {
+      const payload = new FormData();
+      Object.entries({ ...formData, title: formData.title.trim(), description: formData.description.trim() }).forEach(([key, value]) => payload.append(key, value));
+      files.forEach((file) => payload.append("attachments", file));
       const response = await API.post(
-        "/admin/tasks/assign",
-        {
-          ...formData,
-          title: formData.title.trim(),
-          description: formData.description.trim(),
-        },
+        "/admin/tasks/assign", payload,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -95,6 +96,7 @@ function AssignTaskDialog({ open, onClose, users, onAssigned }) {
       onAssigned(response.data.task, response.data.message);
 
       setFormData(initialFormData);
+      setFiles([]);
       setError("");
       onClose();
     } catch (err) {
@@ -199,6 +201,7 @@ function AssignTaskDialog({ open, onClose, users, onAssigned }) {
                 }}
                 />
             </Box>
+            <AttachmentPicker files={files} onChange={setFiles} />
           </Stack>
         </DialogContent>
 

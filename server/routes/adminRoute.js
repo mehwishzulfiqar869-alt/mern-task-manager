@@ -3,6 +3,7 @@ import express from "express";
 
 import authMiddleware from "../middleware/authMiddleware.js";
 import authorizeAdmin from "../middleware/authorizeAdmin.js";
+import { uploadAttachments } from "../middleware/uploadMiddleware.js";
 
 import {
   getAllUsers,
@@ -25,7 +26,7 @@ router.patch("/users/:id/role", updateUserRole);
 
 
 router.get("/tasks", getAllTasks);
-router.post("/tasks/assign" , assignTask)
+router.post("/tasks/assign" , uploadAttachments, assignTask)
 router.patch("/tasks/:id/approval", updateTaskApproval);
 
 export default router;

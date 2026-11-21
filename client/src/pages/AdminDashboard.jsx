@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import AssignTaskDialog from "../components/admin/AssignTaskDialog";
+import AttachmentList from "../components/AttachmentList";
 import AddUserDialog from "../components/admin/AddUserDialog";
 
 import {
@@ -50,6 +51,7 @@ function AdminDashboard() {
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
 
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
 
@@ -193,6 +195,9 @@ function AdminDashboard() {
         setRejectDialogOpen(false);
         setSelectedTask(null);
         setRejectionReason("");
+      } else if (approvalStatus === "approved") {
+        setApproveDialogOpen(false);
+        setSelectedTask(null);
       }
     } catch (err) {
       setActionError(
@@ -202,6 +207,19 @@ function AdminDashboard() {
     } finally {
       setUpdatingTaskId(null);
     }
+  };
+
+  const openApproveDialog = (task) => {
+    setSelectedTask(task);
+    setActionError("");
+    setApproveDialogOpen(true);
+  };
+
+  const closeApproveDialog = () => {
+    if (updatingTaskId !== null) return;
+    setApproveDialogOpen(false);
+    setSelectedTask(null);
+    setActionError("");
   };
 
   const openRejectDialog = (task) => {
@@ -557,6 +575,7 @@ function AdminDashboard() {
                             >
                               {task.description}
                             </Typography>
+                            <AttachmentList taskId={task._id} attachments={task.attachments} />
                           </TableCell>
 
                           <TableCell>
@@ -616,9 +635,7 @@ function AdminDashboard() {
                                   updatingTaskId !== null ||
                                   approvalStatus === "approved"
                                 }
-                                onClick={() =>
-                                  handleTaskApproval(task, "approved")
-                                }
+                                onClick={() => openApproveDialog(task)}
                               >
                                 {updatingTaskId === task._id ? (
                                   <CircularProgress
@@ -669,6 +686,34 @@ function AdminDashboard() {
         onClose={() => setAddUserDialogOpen(false)}
         onAdded={handleUserAdded}
       />
+
+      <Dialog
+        open={approveDialogOpen}
+        onClose={closeApproveDialog}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Approve Task</DialogTitle>
+        <DialogContent>
+          {actionError && <Alert severity="error" sx={{ mb: 2 }}>{actionError}</Alert>}
+          <Typography>
+            Are you sure you want to approve <strong>{selectedTask?.title}</strong>? The user will be able to proceed with this task after approval.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeApproveDialog} disabled={updatingTaskId !== null}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="success"
+            onClick={() => selectedTask && handleTaskApproval(selectedTask, "approved")}
+            disabled={updatingTaskId !== null || !selectedTask}
+          >
+            {updatingTaskId === selectedTask?._id ? <CircularProgress size={18} color="inherit" /> : "Confirm Approval"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       
       <Dialog

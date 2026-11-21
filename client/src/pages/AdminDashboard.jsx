@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import AssignTaskDialog from "../components/admin/AssignTaskDialog";
+import AddUserDialog from "../components/admin/AddUserDialog";
 
 import {
   AppBar,
@@ -36,6 +38,8 @@ function AdminDashboard() {
 
   const [usersLoading, setUsersLoading] = useState(true);
   const [tasksLoading, setTasksLoading] = useState(true);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [addUserDialogOpen, setAddUserDialogOpen] = useState(false);
 
   const [usersError, setUsersError] = useState("");
   const [tasksError, setTasksError] = useState("");
@@ -45,12 +49,10 @@ function AdminDashboard() {
   const [updatingUserId, setUpdatingUserId] = useState(null);
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
 
-  // Rejection dialog states
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [rejectionReason, setRejectionReason] = useState("");
 
-  // Get current admin ID
   const currentUserId = (() => {
     try {
       const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -60,7 +62,6 @@ function AdminDashboard() {
     }
   })();
 
-  // Fetch users and tasks
   useEffect(() => {
     let ignore = false;
 
@@ -120,7 +121,6 @@ function AdminDashboard() {
     };
   }, []);
 
-  // Promote or demote users
   const handleRoleChange = async (user) => {
     const newRole = user.role === "admin" ? "user" : "admin";
 
@@ -158,7 +158,6 @@ function AdminDashboard() {
     }
   };
 
-  // Approve or reject a task
   const handleTaskApproval = async (
     task,
     approvalStatus,
@@ -205,7 +204,6 @@ function AdminDashboard() {
     }
   };
 
-  // Open rejection dialog
   const openRejectDialog = (task) => {
     setSelectedTask(task);
     setRejectionReason("");
@@ -213,7 +211,6 @@ function AdminDashboard() {
     setRejectDialogOpen(true);
   };
 
-  // Submit rejection
   const handleRejectSubmit = () => {
     if (!rejectionReason.trim()) {
       setActionError("Please enter a rejection reason.");
@@ -227,14 +224,26 @@ function AdminDashboard() {
     );
   };
 
-  // Logout
+  const handleTaskAssigned = (newTask, message) => {
+    setTasks((prevTasks) => [newTask, ...prevTasks]);
+
+    setActionError("");
+    setSuccess(message || "Task assigned successfully.");
+  };
+
+  const handleUserAdded = (newUser, message) => {
+    setUsers((prevUsers) => [newUser, ...prevUsers]);
+
+    setActionError("");
+    setSuccess(message || "User created successfully.");
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/login");
   };
 
-  // Approval status color
   const getApprovalColor = (status) => {
     if (status === "approved") return "success";
     if (status === "rejected") return "error";
@@ -243,7 +252,6 @@ function AdminDashboard() {
 
   return (
     <>
-      {/* Header */}
       <AppBar position="static">
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
@@ -257,19 +265,59 @@ function AdminDashboard() {
       </AppBar>
 
       <Container maxWidth="xl" sx={{ mt: 4, mb: 5 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            width: "100%",
+            mb: 3,
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: { xs: "flex-start", sm: "center" },
+              flexWrap: "wrap",
+              gap: 2,
+              width: "100%",
+              mb: 3,
+            }}
+          >
+            <Box>
+              <Typography variant="h4" fontWeight="bold">
+                Admin Dashboard
+              </Typography>
 
-        {/* Dashboard Heading */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h4" fontWeight="bold">
-            Admin Dashboard
-          </Typography>
+              <Typography color="text.secondary">
+                Manage registered users and review their tasks.
+              </Typography>
+            </Box>
 
-          <Typography color="text.secondary">
-            Manage registered users and review their tasks.
-          </Typography>
+            <Stack
+              direction="row"
+              spacing={1.5}
+              sx={{ flexShrink: 0 }}
+            >
+              <Button
+                variant="outlined"
+                onClick={() => setAddUserDialogOpen(true)}
+              >
+                + Add User
+              </Button>
+
+              <Button
+                variant="contained"
+                onClick={() => setAssignDialogOpen(true)}
+                disabled={usersLoading || users.length === 0}
+              >
+                + Assign Task
+              </Button>
+            </Stack>
+          </Box>
         </Box>
 
-        {/* Dashboard Statistics */}
         <Stack
           direction={{ xs: "column", sm: "row" }}
           spacing={2}
@@ -314,7 +362,7 @@ function AdminDashboard() {
           </Paper>
         </Stack>
 
-        {/* Action Messages */}
+        
         {actionError && (
           <Alert
             severity="error"
@@ -335,7 +383,7 @@ function AdminDashboard() {
           </Alert>
         )}
 
-        {/* USER MANAGEMENT */}
+        
         <Box sx={{ mb: 5 }}>
           <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
             User Management
@@ -437,15 +485,25 @@ function AdminDashboard() {
           </TableContainer>
         </Box>
 
-        {/* TASK MANAGEMENT */}
+        
         <Box>
-          <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
-            Task Management
-          </Typography>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            justifyContent="space-between"
+            alignItems={{ xs: "stretch", sm: "center" }}
+            spacing={2}
+            sx={{ mb: 2 }}
+          >
+            <Box>
+              <Typography variant="h5" fontWeight="bold">
+                Task Management
+              </Typography>
 
-          <Typography color="text.secondary" sx={{ mb: 2 }}>
-            Review tasks submitted by all registered users.
-          </Typography>
+              <Typography color="text.secondary">
+                Review submitted tasks or assign new tasks to users.
+              </Typography>
+            </Box>
+          </Stack>
 
           {tasksError && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -557,7 +615,7 @@ function AdminDashboard() {
                                 disabled={
                                   updatingTaskId !== null ||
                                   approvalStatus === "approved"
-                            }
+                                }
                                 onClick={() =>
                                   handleTaskApproval(task, "approved")
                                 }
@@ -597,7 +655,22 @@ function AdminDashboard() {
         </Box>
       </Container>
 
-      {/* REJECTION REASON DIALOG */}
+      
+      <AssignTaskDialog
+        open={assignDialogOpen}
+        onClose={() => setAssignDialogOpen(false)}
+        users={users}
+        onAssigned={handleTaskAssigned}
+      />
+
+      
+      <AddUserDialog
+        open={addUserDialogOpen}
+        onClose={() => setAddUserDialogOpen(false)}
+        onAdded={handleUserAdded}
+      />
+
+      
       <Dialog
         open={rejectDialogOpen}
         onClose={() => {

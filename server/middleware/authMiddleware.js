@@ -13,11 +13,8 @@ const authMiddleware = async (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1];
-
    
     const validToken = jwt.verify(token, process.env.JWT_SECRET);
-
-    
     const user = await User.findById(validToken.id).select("_id role");
 
     if (!user) {
@@ -25,8 +22,6 @@ const authMiddleware = async (req, res, next) => {
         message: "User not found. Please login again.",
       });
     }
-
-    
     req.user = {
       ...validToken,
       id: user._id.toString(),

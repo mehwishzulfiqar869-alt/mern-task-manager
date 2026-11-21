@@ -9,6 +9,8 @@ import {
   updateUserRole,
   getAllTasks,
   updateTaskApproval,
+  addUser,
+  assignTask ,
 } from "../controllers/adminController.js";
 
 const router = express.Router();
@@ -18,10 +20,12 @@ router.use(authMiddleware, authorizeAdmin);
 
 
 router.get("/users", getAllUsers);
+router.post("/users" , addUser);
 router.patch("/users/:id/role", updateUserRole);
 
-//for task 
+
 router.get("/tasks", getAllTasks);
+router.post("/tasks/assign" , assignTask)
 router.patch("/tasks/:id/approval", updateTaskApproval);
 
 export default router;

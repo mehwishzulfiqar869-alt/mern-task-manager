@@ -16,12 +16,12 @@ app.use(express.json());
 
 
 
-// Test route
+
 app.get("/test", (req, res) => {
   res.status(200).send("Express is working!");
 });
 
-// Authentication routes
+
 app.use("/api/auth", authRoute);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/admin", adminRoute);

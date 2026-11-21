@@ -1,6 +1,43 @@
 
 import mongoose from "mongoose";
 
+
+const attachmentSchema = new mongoose.Schema(
+  {
+    originalName: {
+      type: String,
+      required: true,
+    },
+
+    filename: {
+      type: String,
+      required: true,
+    },
+
+    mimetype: {
+      type: String,
+      required: true,
+    },
+
+    size: {
+      type: Number,
+      required: true,
+    },
+
+    path: {
+      type: String,
+      required: true,
+    },
+
+    uploadedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+  },
+  { _id: false }
+);
+
 const taskSchema = new mongoose.Schema(
   {
     title: {
@@ -67,6 +104,11 @@ const taskSchema = new mongoose.Schema(
     reviewedAt: {
       type: Date,
       default: null,
+    },
+
+    attachments:{
+      type:[attachmentSchema],
+      default:[]
     },
   },
   {

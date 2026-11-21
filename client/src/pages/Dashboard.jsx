@@ -532,9 +532,7 @@ function Dashboard() {
 
   </>
 )}
-
-            
-        
+                   
         <Dialog
           open={dialogType === "add"}
           onClose={handleClose}
@@ -556,7 +554,6 @@ function Dashboard() {
                   fullWidth
                   required
                   inputProps={{ minLength: 3 }}
-                 
                 />
 
                 <TextField
@@ -575,7 +572,7 @@ function Dashboard() {
                   select
                   label="Status"
                   name="status"
-                  value={editData.status}
+                  value={formData.status}
                   onChange={handleChange}
                   fullWidth
                 >
@@ -596,15 +593,19 @@ function Dashboard() {
                   <MenuItem value="high">High</MenuItem>
                 </TextField>
 
-                <TextField
-                  label="Due Date"
-                  name="dueDate"
-                  type="date"
-                  value={formData.dueDate}
-                  onChange={handleChange}
-                  fullWidth
-                  InputLabelProps={{ shrink: true }}
-                />
+                <Box>
+                  <Typography variant="body2" fontWeight={500} sx={{ mb: 1 }}>
+                    Due Date
+                  </Typography>
+                  <TextField
+                    name="dueDate"
+                    type="date"
+                    value={formData.dueDate}
+                    onChange={handleChange}
+                    fullWidth
+                    inputProps={{ "aria-label": "Due Date" }}
+                  />
+                </Box>
               </Stack>
             </DialogContent>
 
@@ -634,20 +635,14 @@ function Dashboard() {
               <Stack spacing={2} sx={{ pt: 1 }}>
                 {editError && <Alert severity="error">{editError}</Alert>}
 
-                <TextField
-                  label="Task Title"
-                  name="title"
-                  value={editData.title}
+                <TextField label="Task Title" name="title" value={editData.title}
                   onChange={handleEditChange}
                   fullWidth
                   required
                   inputProps={{ minLength: 3 }}
                 />
 
-                <TextField
-                  label="Description"
-                  name="description"
-                  value={editData.description}
+                <TextField label="Description" name="description" value={editData.description}
                   onChange={handleEditChange}
                   fullWidth
                   multiline
@@ -658,10 +653,7 @@ function Dashboard() {
 
                 <TextField
                   select
-                  label="Status"
-                  name="status"
-                  value={editData.status}
-                  onChange={handleEditChange}
+                  label="Status" name="status" value={editData.status} onChange={handleEditChange}
                   fullWidth
                 >
                   <MenuItem value="pending">Pending</MenuItem>
@@ -681,15 +673,19 @@ function Dashboard() {
                   <MenuItem value="high">High</MenuItem>
                 </TextField>
 
-                <TextField
-                  label="Due Date"
-                  name="dueDate"
-                  type="date"
-                  value={editData.dueDate}
-                  onChange={handleEditChange}
-                  fullWidth
-                  InputLabelProps={{ shrink: true }}
-                />
+                <Box>
+                  <Typography variant="body2" fontWeight={500} sx={{ mb: 1 }}>
+                    Due Date
+                  </Typography>
+                  <TextField
+                    name="dueDate"
+                    type="date"
+                    value={editData.dueDate}
+                    onChange={handleEditChange}
+                    fullWidth
+                    inputProps={{ "aria-label": "Due Date" }}
+                  />
+                </Box>
               </Stack>
             </DialogContent>
 

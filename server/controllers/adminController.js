@@ -2,7 +2,7 @@
 import mongoose from "mongoose";
 import User from "../models/User.js";
 import Task from "../models/task.js";
-
+import bcrypt from "bcryptjs";
 
 export const getAllUsers = async (req, res) => {
   try {
@@ -19,6 +19,84 @@ export const getAllUsers = async (req, res) => {
 
     res.status(500).json({
       message: "Failed to fetch users",
+    });
+  }
+};
+
+
+//admin add user 
+export const addUser = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    if (!name?.trim() || !email?.trim() || !password) {
+      return res.status(400).json({
+        message: "Name, email, and password are required",
+      });
+    }
+    if (name.trim().length < 2) {
+      return res.status(400).json({
+        message: "Name must be at least 2 characters",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(normalizedEmail)) {
+      return res.status(400).json({
+        message: "Please enter a valid email address",
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters",
+      });
+    }
+
+    const existingUser = await User.findOne({
+      email: normalizedEmail,
+    });
+
+    if (existingUser) {
+      return res.status(409).json({
+        message: "A user with this email already exists",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      name: name.trim(),
+      email: normalizedEmail,
+      password: hashedPassword,
+      role: "user",
+    });
+
+    
+    res.status(201).json({
+      message: "User created successfully",
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+      },
+    });
+  } catch (error) {
+   
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message: "A user with this email already exists",
+      });
+    }
+
+    console.error("Add user error:", error.message);
+
+    res.status(500).json({
+      message: "Failed to create user",
     });
   }
 };
@@ -108,8 +186,80 @@ export const getAllTasks = async (req, res) => {
   }
 };
 
+export const assignTask = async (req, res) => {
+  try {
+    const {
+      userId,
+      title,
+      description,
+      priority,
+      dueDate,
+    } = req.body;
 
-// Approve or reject  task
+    if (!mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({
+        message: "Invalid user ID",
+      });
+    }
+   
+    if (!title?.trim() || !description?.trim() || !dueDate) {
+      return res.status(400).json({
+        message: "Title, description, and due date are required",
+      });
+    }
+
+   
+    if (
+      priority &&
+      !["low", "medium", "high"].includes(priority)
+    ) {
+      return res.status(400).json({
+        message: "Priority must be low, medium, or high",
+      });
+    }
+
+    
+    const assignedUser = await User.findById(userId);
+
+    if (!assignedUser) {
+      return res.status(404).json({
+        message: "Assigned user not found",
+      });
+    }
+
+    
+    const task = await Task.create({
+      title,
+      description,
+      priority: priority || "medium",
+      dueDate,
+      user: assignedUser._id,
+
+     
+      status: "pending",
+      approvalStatus: "approved",
+      rejectionReason: "",
+      reviewedBy: req.user.id,
+      reviewedAt: new Date(),
+    });
+
+    await task.populate("user", "name email");
+    await task.populate("reviewedBy", "name email");
+
+    res.status(201).json({
+      message: "Task assigned successfully",
+      task,
+    });
+  } catch (error) {
+    console.error("Assign task error:", error.message);
+
+    res.status(400).json({
+      message: error.message || "Failed to assign task",
+    });
+  }
+};
+
+
 export const updateTaskApproval = async (req, res) => {
   try {
     const { id } = req.params;

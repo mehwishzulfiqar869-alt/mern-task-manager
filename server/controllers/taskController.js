@@ -108,6 +108,7 @@ if (status !== undefined && status !== task.status) {
   }
 
   task.status = status;
+  task.completedAt = status === "completed" ? new Date() : null;
 }
 
     

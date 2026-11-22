@@ -276,6 +276,10 @@ function AdminDashboard() {
             Admin Dashboard
           </Typography>
 
+          <Button color="inherit" onClick={() => navigate("/admin/analytics")} sx={{ mr: 1 }}>
+            Analytics
+          </Button>
+
           <Button color="inherit" onClick={handleLogout}>
             Logout
           </Button>

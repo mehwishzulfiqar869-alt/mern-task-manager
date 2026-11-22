@@ -330,3 +330,75 @@ export const updateTaskApproval = async (req, res) => {
   }
 };
 
+export const getTaskAnalytics = async (req, res) => {
+  const range = req.query.range || "weekly";
+  if (!["weekly", "monthly"].includes(range)) {
+    return res.status(400).json({ message: "Range must be weekly or monthly." });
+  }
+
+  try {
+    const now = new Date();
+    const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    let startDate;
+    let endDate;
+    const buckets = [];
+
+    if (range === "weekly") {
+      startDate = new Date(todayUtc);
+      startDate.setUTCDate(startDate.getUTCDate() - 6);
+      endDate = new Date(todayUtc);
+      endDate.setUTCDate(endDate.getUTCDate() + 1);
+      for (let index = 0; index < 7; index += 1) {
+        const date = new Date(startDate);
+        date.setUTCDate(date.getUTCDate() + index);
+        buckets.push(date.toISOString().slice(0, 10));
+      }
+    } else {
+      startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 11, 1));
+      endDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+      for (let index = 0; index < 12; index += 1) {
+        const date = new Date(startDate);
+        date.setUTCMonth(date.getUTCMonth() + index);
+        buckets.push(date.toISOString().slice(0, 7));
+      }
+    }
+
+    const format = range === "weekly" ? "%Y-%m-%d" : "%Y-%m";
+    const [result] = await Task.aggregate([
+      {
+        $facet: {
+          statuses: [{ $group: { _id: "$status", count: { $sum: 1 } } }],
+          created: [
+            { $match: { createdAt: { $gte: startDate, $lt: endDate } } },
+            { $group: { _id: { $dateToString: { format, date: "$createdAt", timezone: "UTC" } }, count: { $sum: 1 } } },
+          ],
+          completed: [
+            { $match: { status: "completed", completedAt: { $gte: startDate, $lt: endDate } } },
+            { $group: { _id: { $dateToString: { format, date: "$completedAt", timezone: "UTC" } }, count: { $sum: 1 } } },
+          ],
+        },
+      },
+    ]);
+
+    const statusCounts = { pending: 0, "in-progress": 0, completed: 0 };
+    for (const item of result.statuses) {
+      if (Object.hasOwn(statusCounts, item._id)) statusCounts[item._id] = item.count;
+    }
+    const createdCounts = new Map(result.created.map((item) => [item._id, item.count]));
+    const completedCounts = new Map(result.completed.map((item) => [item._id, item.count]));
+
+    res.status(200).json({
+      range,
+      statusCounts,
+      activity: buckets.map((date) => ({
+        date,
+        created: createdCounts.get(date) || 0,
+        completed: completedCounts.get(date) || 0,
+      })),
+    });
+  } catch (error) {
+    console.error("Task analytics error:", error.message);
+    res.status(500).json({ message: "Failed to load task analytics." });
+  }
+};
+

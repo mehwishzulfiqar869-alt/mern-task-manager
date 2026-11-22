@@ -12,6 +12,7 @@ import {
   updateTaskApproval,
   addUser,
   assignTask ,
+  getTaskAnalytics,
 } from "../controllers/adminController.js";
 
 const router = express.Router();
@@ -26,6 +27,7 @@ router.patch("/users/:id/role", updateUserRole);
 
 
 router.get("/tasks", getAllTasks);
+router.get("/analytics", getTaskAnalytics);
 router.post("/tasks/assign" , uploadAttachments, assignTask)
 router.patch("/tasks/:id/approval", updateTaskApproval);
 

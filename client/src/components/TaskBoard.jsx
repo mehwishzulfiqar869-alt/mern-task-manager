@@ -1,4 +1,5 @@
 
+import { useCallback } from "react";
 import {
   DragDropProvider,
   useDraggable,
@@ -25,16 +26,20 @@ function TaskCard({ task, onEdit, onDelete, deletingId }) {
   const { ref, handleRef, isDragging } = useDraggable({
     id: String(task._id),
   });
+  const setCardRef = useCallback((element) => {
+    ref(element);
+    handleRef(element);
+  }, [ref, handleRef]);
 
   return (
     <Paper
-      ref={ref}
+      ref={setCardRef}
       elevation={isDragging ? 5 : 1}
       sx={{
         p: 2,
         borderRadius: 2,
         opacity: isDragging ? 0.5 : 1,
-        cursor: "default",
+        cursor: isDragging ? "grabbing" : "grab",
         bgcolor: "white",
       }}
     >
@@ -44,14 +49,6 @@ function TaskCard({ task, onEdit, onDelete, deletingId }) {
             {task.title}
           </Typography>
 
-          <Button
-            ref={handleRef}
-            size="small"
-            variant="outlined"
-            sx={{ minWidth: "auto", cursor: "grab" }}
-          >
-            Drag
-          </Button>
         </Box>
 
         <Typography variant="body2" color="text.secondary">

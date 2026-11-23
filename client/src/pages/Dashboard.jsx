@@ -1,7 +1,15 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useTasks } from "../context/TaskContext";
+import { useDispatch, useSelector } from "react-redux";
+
+import {
+  fetchTasks,
+  addTask,
+  updateTask,
+  deleteTask,
+  clearActionError,
+} from "../redux/taskSlice";
+
 import TaskBoard from "../components/TaskBoard";
 import AttachmentPicker from "../components/AttachmentPicker";
 import AttachmentList from "../components/AttachmentList";
@@ -28,18 +36,24 @@ import {
 
 function Dashboard() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const {
-    tasks,
-    loading,
-    error,
-    actionError,
-    setActionError,
-    addTask,
-    updateTask,
-    deleteTask,
-  } = useTasks();
+  
+  const { tasks, loading, error, actionError } = useSelector(
+    (state) => state.tasks
+  );
 
+ 
+  useEffect(() => {
+    dispatch(fetchTasks());
+  }, [dispatch]);
+
+  
+  const updateTaskFromUI = (taskId, taskData) => {
+    return dispatch(updateTask({ taskId, taskData })).unwrap();
+  };
+
+ 
   const [activeFilter, setActiveFilter] = useState("all");
   const [deletingId, setDeletingId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -67,7 +81,6 @@ function Dashboard() {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [removedAttachments, setRemovedAttachments] = useState([]);
 
-  // Validate title and description
   const validateTaskFields = ({ title, description }) => {
     const cleanTitle = title.trim();
     const cleanDescription = description.trim();
@@ -91,6 +104,7 @@ function Dashboard() {
     return "";
   };
 
+ 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -111,16 +125,17 @@ function Dashboard() {
     });
   };
 
+  
   const handleOpen = () => {
     setFormError("");
-    setActionError("");
+    dispatch(clearActionError());
     setSuccessMessage("");
     setFormData(initialFormData);
     setSelectedFiles([]);
     setDialogType("add");
   };
 
-  // Close Add Task dialog
+  
   const handleClose = () => {
     if (submitting) return;
 
@@ -128,7 +143,7 @@ function Dashboard() {
     setFormError("");
   };
 
-  // Create a new task using Context
+  
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -142,58 +157,71 @@ function Dashboard() {
     try {
       setSubmitting(true);
       setFormError("");
-      setActionError("");
+      dispatch(clearActionError());
       setSuccessMessage("");
 
       const payload = new FormData();
+
       payload.append("title", formData.title.trim());
       payload.append("description", formData.description.trim());
       payload.append("priority", formData.priority);
-      if (formData.dueDate) payload.append("dueDate", formData.dueDate);
-      selectedFiles.forEach((file) => payload.append("attachments", file));
-      await addTask(payload);
+
+      if (formData.dueDate) {
+        payload.append("dueDate", formData.dueDate);
+      }
+
+      selectedFiles.forEach((file) => {
+        payload.append("attachments", file);
+      });
+
+      // Redux thunk handles the API request
+      await dispatch(addTask(payload)).unwrap();
 
       setFormData(initialFormData);
+      setSelectedFiles([]);
       setDialogType(null);
       setSuccessMessage("Task created successfully!");
     } catch (err) {
-      setActionError("");
+      dispatch(clearActionError());
+
       setFormError(
-        err.response?.data?.message || "Failed to create task"
+        typeof err === "string"
+          ? err
+          : err.response?.data?.message || "Failed to create task"
       );
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Delete a task using Context
+  
   const handleDelete = async (taskId) => {
     const confirmDelete = window.confirm(
-      "Are you sure you want to delete this task?",
+      "Are you sure you want to delete this task?"
     );
 
     if (!confirmDelete) return;
 
     try {
       setDeletingId(taskId);
-      setActionError("");
+      dispatch(clearActionError());
       setSuccessMessage("");
 
-      await deleteTask(taskId);
+      await dispatch(deleteTask(taskId)).unwrap();
 
       setSuccessMessage("Task deleted successfully!");
     } catch {
-      // TaskContext sets the action error
+      // Redux stores the action error
     } finally {
       setDeletingId(null);
     }
   };
 
-  
+  // Open Edit Task dialog
   const handleEditOpen = (task) => {
     setEditingId(task._id);
     setEditError("");
-    setActionError("");
+    dispatch(clearActionError());
     setSuccessMessage("");
 
     setEditData({
@@ -205,22 +233,24 @@ function Dashboard() {
         ? new Date(task.dueDate).toISOString().split("T")[0]
         : "",
     });
+
     setSelectedFiles([]);
     setRemovedAttachments([]);
-
     setDialogType("edit");
   };
 
-  
+  // Close Edit Task dialog
   const handleEditClose = () => {
     if (updating) return;
 
     setDialogType(null);
     setEditingId(null);
     setEditError("");
+    setSelectedFiles([]);
+    setRemovedAttachments([]);
   };
 
-  
+ 
   const handleUpdate = async (event) => {
     event.preventDefault();
 
@@ -234,40 +264,67 @@ function Dashboard() {
     try {
       setUpdating(true);
       setEditError("");
-      setActionError("");
+      dispatch(clearActionError());
       setSuccessMessage("");
 
       const payload = new FormData();
-      Object.entries({ ...editData, title: editData.title.trim(), description: editData.description.trim() }).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) payload.append(key, value);
+
+      Object.entries({
+        ...editData,
+        title: editData.title.trim(),
+        description: editData.description.trim(),
+      }).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          payload.append(key, value);
+        }
       });
-      payload.append("removeAttachmentIds", JSON.stringify(removedAttachments));
-      selectedFiles.forEach((file) => payload.append("attachments", file));
-      await updateTask(editingId, payload);
+
+     
+      payload.append(
+        "removeAttachmentIds",
+        JSON.stringify(removedAttachments)
+      );
+
+     
+      selectedFiles.forEach((file) => {
+        payload.append("attachments", file);
+      });
+
+      await dispatch(
+        updateTask({
+          taskId: editingId,
+          taskData: payload,
+        })
+      ).unwrap();
 
       setDialogType(null);
       setEditingId(null);
+      setSelectedFiles([]);
+      setRemovedAttachments([]);
       setSuccessMessage("Task updated successfully!");
     } catch (err) {
-      setActionError("");
+      dispatch(clearActionError());
+
       setEditError(
-        err.response?.data?.message || "Failed to update task"
+        typeof err === "string"
+          ? err
+          : err.response?.data?.message || "Failed to update task"
       );
     } finally {
       setUpdating(false);
     }
   };
 
-  
+  // Calculate task counts
   const pendingTasks = tasks.filter(
     (task) => task.status === "pending"
   ).length;
 
   const completedTasks = tasks.filter(
-    (task) => task.status === "completed",
+    (task) => task.status === "completed"
   ).length;
 
-  
+  // Filter tasks
   const filteredTasks = tasks.filter((task) => {
     if (activeFilter === "all") {
       return true;
@@ -300,6 +357,7 @@ function Dashboard() {
           Manage your tasks and stay productive.
         </Typography>
 
+        {/* Success message */}
         {successMessage && (
           <Alert
             severity="success"
@@ -310,17 +368,18 @@ function Dashboard() {
           </Alert>
         )}
 
-        
+        {/* Redux action error */}
         {actionError && (
           <Alert
             severity="error"
             sx={{ mb: 3 }}
-            onClose={() => setActionError("")}
+            onClose={() => dispatch(clearActionError())}
           >
             {actionError}
           </Alert>
         )}
 
+        {/* Loading and fetch error states */}
         {loading ? (
           <Box
             sx={{
@@ -335,7 +394,7 @@ function Dashboard() {
           <Alert severity="error">{error}</Alert>
         ) : (
           <>
-             
+            {/* Dashboard statistics */}
             <Box
               sx={{
                 display: "grid",
@@ -378,44 +437,48 @@ function Dashboard() {
               </Paper>
             </Box>
 
-<Stack
-  direction={{ xs: "column", sm: "row" }}
-  justifyContent="space-between"
-  alignItems={{ xs: "stretch", sm: "center" }}
-  spacing={2}
-  sx={{ mb: 3, width: "100%" }}
->
-  <Typography variant="h5" fontWeight="bold">
-    My Tasks
-  </Typography>
+            {/* Task heading and view controls */}
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              justifyContent="space-between"
+              alignItems={{ xs: "stretch", sm: "center" }}
+              spacing={2}
+              sx={{ mb: 3, width: "100%" }}
+            >
+              <Typography variant="h5" fontWeight="bold">
+                My Tasks
+              </Typography>
 
-  <Stack direction="row" spacing={1} flexWrap="wrap">
-    <Button
-      variant={viewMode === "list" ? "contained" : "outlined"}
-      onClick={() => setViewMode("list")}
-    >
-      List View
-    </Button>
+              <Stack direction="row" spacing={1} flexWrap="wrap">
+                <Button
+                  variant={viewMode === "list" ? "contained" : "outlined"}
+                  onClick={() => setViewMode("list")}
+                >
+                  List View
+                </Button>
 
-    <Button
-      variant={viewMode === "board" ? "contained" : "outlined"}
-      onClick={() => {
-        setViewMode("board");
-        setActiveFilter("all");
-      }}
-    >
-      Board View
-    </Button>
+                <Button
+                  variant={viewMode === "board" ? "contained" : "outlined"}
+                  onClick={() => {
+                    setViewMode("board");
+                    setActiveFilter("all");
+                  }}
+                >
+                  Board View
+                </Button>
 
-    <Button variant="contained" onClick={handleOpen}>
-       Add Task
-    </Button>
-  </Stack>
-</Stack>
+                <Button variant="contained" onClick={handleOpen}>
+                  Add Task
+                </Button>
+              </Stack>
+            </Stack>
 
-
-             
-            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 3, rowGap: 1 }}
+            {/* Task filters */}
+            <Stack
+              direction="row"
+              spacing={1}
+              flexWrap="wrap"
+              sx={{ mb: 3, rowGap: 1 }}
             >
               <Button
                 variant={activeFilter === "all" ? "contained" : "outlined"}
@@ -425,7 +488,9 @@ function Dashboard() {
               </Button>
 
               <Button
-                variant={activeFilter === "pending" ? "contained" : "outlined"}
+                variant={
+                  activeFilter === "pending" ? "contained" : "outlined"
+                }
                 onClick={() => setActiveFilter("pending")}
               >
                 Pending ({pendingTasks})
@@ -442,107 +507,152 @@ function Dashboard() {
             </Stack>
 
             
-
-           {viewMode === "board" ? (
-  <TaskBoard tasks={tasks} updateTask={updateTask}onEdit={handleEditOpen} onDelete={handleDelete} deletingId={deletingId}/>
-) : (
-  <>
-    {tasks.length === 0 ? (
-              <Paper sx={{ p: 4, textAlign: "center" }}>
-                <Typography color="text.secondary">
-                  You don't have any tasks yet. Add your first task!
-                </Typography>
-              </Paper>
-            ) : filteredTasks.length === 0 ? (
-              <Paper sx={{ p: 4, textAlign: "center" }}>
-                <Typography color="text.secondary">
-                  No {activeFilter} tasks found.
-                </Typography>
-              </Paper>
+            {viewMode === "board" ? (
+              <TaskBoard
+                tasks={tasks}
+                updateTask={updateTaskFromUI}
+                onEdit={handleEditOpen}
+                onDelete={handleDelete}
+                deletingId={deletingId}
+              />
             ) : (
-              <Stack spacing={2}>
-                {filteredTasks.map((task) => (
-                  <Paper
-                    key={task._id}
-                    sx={{p: 3,borderRadius: 3,display: "flex",justifyContent: "space-between",alignItems: "center",
-                      flexWrap: "wrap", gap: 2,
-                    }}
-                  >
-                    <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Typography variant="h6" fontWeight="bold">
-                        {task.title}
-                      </Typography>
+              <>
+               
+                {tasks.length === 0 ? (
+                  <Paper sx={{ p: 4, textAlign: "center" }}>
+                    <Typography color="text.secondary">
+                      You don't have any tasks yet. Add your first task!
+                    </Typography>
+                  </Paper>
+                ) : filteredTasks.length === 0 ? (
+                  <Paper sx={{ p: 4, textAlign: "center" }}>
+                    <Typography color="text.secondary">
+                      No {activeFilter} tasks found.
+                    </Typography>
+                  </Paper>
+                ) : (
+                  <Stack spacing={2}>
+                    {filteredTasks.map((task) => (
+                      <Paper
+                        key={task._id}
+                        sx={{
+                          p: 3,
+                          borderRadius: 3,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                          gap: 2,
+                        }}
+                      >
+                        
+                        <Box sx={{ minWidth: 0, flex: 1 }}>
+                          <Typography variant="h6" fontWeight="bold">
+                            {task.title}
+                          </Typography>
 
-                      <Typography color="text.secondary">
-                        {task.description}
-                      </Typography>
-                      <AttachmentList taskId={task._id} attachments={task.attachments} />
+                          <Typography color="text.secondary">
+                            {task.description}
+                          </Typography>
 
-                      {task.dueDate && (
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ mt: 1 }}
+                          <AttachmentList
+                            taskId={task._id}
+                            attachments={task.attachments}
+                          />
+
+                          
+                          {task.dueDate && (
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ mt: 1 }}
+                            >
+                              Due: {new Date(task.dueDate).toLocaleDateString()}
+                            </Typography>
+                          )}
+
+                          
+                          {task.approvalStatus === "rejected" &&
+                            task.rejectionReason && (
+                              <Alert severity="error" sx={{ mt: 2 }}>
+                                <strong>Admin Feedback:</strong>{" "}
+                                {task.rejectionReason}
+                              </Alert>
+                            )}
+                        </Box>
+
+                       
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
+                          flexWrap="wrap"
                         >
-                          Due: {new Date(task.dueDate).toLocaleDateString()}
-                        </Typography>
-                      )}
-
-                      {task.approvalStatus === "rejected" &&
-                        task.rejectionReason && (
-                          <Alert severity="error" sx={{ mt: 2 }}>
-                            <strong>Admin Feedback:</strong> {task.rejectionReason}
-                          </Alert>
-                        )}
-                    </Box>
-
-                    <Stack
-                      direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                      <Chip
-                        label={task.priority} color={task.priority === "high" ? "error": task.priority === "medium"
-                              ? "warning"
-                              : "success"
-                        }
-                      />
-
-                      <Chip
-                        label={task.status}
-                        color={
-                          task.status === "completed" ? "success" : "default"
-                        }
-                      />
-
-                        <Chip
-                            label={`Admin Review: ${task.approvalStatus || "pending"}`}
+                          <Chip
+                            label={task.priority}
                             color={
-                              task.approvalStatus === "approved"? "success": task.approvalStatus === "rejected" ? "error" : "warning"
+                              task.priority === "high"
+                                ? "error"
+                                : task.priority === "medium"
+                                ? "warning"
+                                : "success"
                             }
                           />
 
+                          <Chip
+                            label={task.status}
+                            color={
+                              task.status === "completed"
+                                ? "success"
+                                : "default"
+                            }
+                          />
 
-                      <Button
-                        variant="outlined"color="primary"onClick={() => handleEditOpen(task)}
-                        disabled={deletingId === task._id}
-                      >
-                        Edit
-                      </Button>
+                          <Chip
+                            label={`Admin Review: ${
+                              task.approvalStatus || "pending"
+                            }`}
+                            color={
+                              task.approvalStatus === "approved"
+                                ? "success"
+                                : task.approvalStatus === "rejected"
+                                ? "error"
+                                : "warning"
+                            }
+                          />
 
-                      <Button color="error" variant="outlined" disabled={deletingId === task._id}
-                      onClick={() => handleDelete(task._id)}
-                      >
-                        {deletingId === task._id ? "Deleting..." : "Delete"}
-                      </Button>
-                    </Stack>
-                  </Paper>
-                ))}
-              </Stack>
+                          {/* Edit */}
+                          <Button
+                            variant="outlined"
+                            color="primary"
+                            onClick={() => handleEditOpen(task)}
+                            disabled={deletingId === task._id}
+                          >
+                            Edit
+                          </Button>
+
+                          {/* Delete */}
+                          <Button
+                            color="error"
+                            variant="outlined"
+                            disabled={deletingId === task._id}
+                            onClick={() => handleDelete(task._id)}
+                          >
+                            {deletingId === task._id
+                              ? "Deleting..."
+                              : "Delete"}
+                          </Button>
+                        </Stack>
+                      </Paper>
+                    ))}
+                  </Stack>
+                )}
+              </>
             )}
           </>
         )}
 
-  </>
-)}
-                   
+        {/* Add Task dialog */}
         <Dialog
           open={dialogType === "add"}
           onClose={handleClose}
@@ -554,7 +664,9 @@ function Dashboard() {
 
             <DialogContent>
               <Stack spacing={2} sx={{ pt: 1 }}>
-                {formError && <Alert severity="error">{formError}</Alert>}
+                {formError && (
+                  <Alert severity="error">{formError}</Alert>
+                )}
 
                 <TextField
                   label="Task Title"
@@ -603,10 +715,16 @@ function Dashboard() {
                   <MenuItem value="high">High</MenuItem>
                 </TextField>
 
+                
                 <Box>
-                  <Typography variant="body2" fontWeight={500} sx={{ mb: 1 }}>
+                  <Typography
+                    variant="body2"
+                    fontWeight={500}
+                    sx={{ mb: 1 }}
+                  >
                     Due Date
                   </Typography>
+
                   <TextField
                     name="dueDate"
                     type="date"
@@ -616,7 +734,12 @@ function Dashboard() {
                     inputProps={{ "aria-label": "Due Date" }}
                   />
                 </Box>
-                <AttachmentPicker files={selectedFiles} onChange={setSelectedFiles} />
+
+                {/* Attachment picker */}
+                <AttachmentPicker
+                  files={selectedFiles}
+                  onChange={setSelectedFiles}
+                />
               </Stack>
             </DialogContent>
 
@@ -625,14 +748,18 @@ function Dashboard() {
                 Cancel
               </Button>
 
-              <Button type="submit" variant="contained" disabled={submitting}>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={submitting}
+              >
                 {submitting ? "Saving..." : "Save Task"}
               </Button>
             </DialogActions>
           </Box>
         </Dialog>
 
-        
+        {/* Edit Task dialog */}
         <Dialog
           open={dialogType === "edit"}
           onClose={handleEditClose}
@@ -644,16 +771,24 @@ function Dashboard() {
 
             <DialogContent>
               <Stack spacing={2} sx={{ pt: 1 }}>
-                {editError && <Alert severity="error">{editError}</Alert>}
+                {editError && (
+                  <Alert severity="error">{editError}</Alert>
+                )}
 
-                <TextField label="Task Title" name="title" value={editData.title}
+                <TextField
+                  label="Task Title"
+                  name="title"
+                  value={editData.title}
                   onChange={handleEditChange}
                   fullWidth
                   required
                   inputProps={{ minLength: 3 }}
                 />
 
-                <TextField label="Description" name="description" value={editData.description}
+                <TextField
+                  label="Description"
+                  name="description"
+                  value={editData.description}
                   onChange={handleEditChange}
                   fullWidth
                   multiline
@@ -664,7 +799,10 @@ function Dashboard() {
 
                 <TextField
                   select
-                  label="Status" name="status" value={editData.status} onChange={handleEditChange}
+                  label="Status"
+                  name="status"
+                  value={editData.status}
+                  onChange={handleEditChange}
                   fullWidth
                 >
                   <MenuItem value="pending">Pending</MenuItem>
@@ -684,10 +822,16 @@ function Dashboard() {
                   <MenuItem value="high">High</MenuItem>
                 </TextField>
 
+                {/* Due date */}
                 <Box>
-                  <Typography variant="body2" fontWeight={500} sx={{ mb: 1 }}>
+                  <Typography
+                    variant="body2"
+                    fontWeight={500}
+                    sx={{ mb: 1 }}
+                  >
                     Due Date
                   </Typography>
+
                   <TextField
                     name="dueDate"
                     type="date"
@@ -697,14 +841,48 @@ function Dashboard() {
                     inputProps={{ "aria-label": "Due Date" }}
                   />
                 </Box>
+
+                {/* Existing and new attachments */}
                 {(() => {
-                  const task = tasks.find((item) => item._id === editingId);
-                  const retained = (task?.attachments || []).filter((item) => !removedAttachments.includes(item.filename));
-                  return <>
-                    <AttachmentList taskId={editingId} attachments={retained} />
-                    {retained.map((item) => <Button key={item.filename} size="small" color="error" onClick={() => setRemovedAttachments((ids) => [...ids, item.filename])}>Remove {item.originalName}</Button>)}
-                    <AttachmentPicker files={selectedFiles} onChange={setSelectedFiles} maxExisting={retained.length} />
-                  </>;
+                  const task = tasks.find(
+                    (item) => item._id === editingId
+                  );
+
+                  const retained = (task?.attachments || []).filter(
+                    (item) =>
+                      !removedAttachments.includes(item.filename)
+                  );
+
+                  return (
+                    <>
+                      <AttachmentList
+                        taskId={editingId}
+                        attachments={retained}
+                      />
+
+                      {retained.map((item) => (
+                        <Button
+                          key={item.filename}
+                          size="small"
+                          color="error"
+                          onClick={() =>
+                            setRemovedAttachments((ids) => [
+                              ...ids,
+                              item.filename,
+                            ])
+                          }
+                        >
+                          Remove {item.originalName}
+                        </Button>
+                      ))}
+
+                      <AttachmentPicker
+                        files={selectedFiles}
+                        onChange={setSelectedFiles}
+                        maxExisting={retained.length}
+                      />
+                    </>
+                  );
                 })()}
               </Stack>
             </DialogContent>
@@ -714,7 +892,11 @@ function Dashboard() {
                 Cancel
               </Button>
 
-              <Button type="submit" variant="contained" disabled={updating}>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={updating}
+              >
                 {updating ? "Updating..." : "Update Task"}
               </Button>
             </DialogActions>

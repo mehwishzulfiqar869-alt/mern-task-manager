@@ -189,9 +189,9 @@ function TaskBoard({
         priority: task.priority,
         dueDate: task.dueDate || undefined,
       });
-    } catch {
-      // TaskContext handles and displays the API error.
-    }
+    } catch (error) {
+  console.error("Failed to move task:", error);
+}
   };
 
   return (

@@ -10,7 +10,7 @@ import AdminAnalytics from "./pages/AdminAnalytics";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 
-import { TaskProvider } from "./context/TaskContext";
+
 
 function App() {
   return (
@@ -22,14 +22,13 @@ function App() {
 
         <Route path="/login" element={<Login />} />
 
-        {/* Normal User Dashboard */}
+       
         <Route
           path="/Dashboard"
           element={
             <ProtectedRoute>
-              <TaskProvider>
+              
                 <Dashboard />
-              </TaskProvider>
             </ProtectedRoute>
           }
         />

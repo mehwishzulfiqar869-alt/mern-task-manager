@@ -368,7 +368,7 @@ function Dashboard() {
           </Alert>
         )}
 
-        {/* Redux action error */}
+        
         {actionError && (
           <Alert
             severity="error"
@@ -379,7 +379,7 @@ function Dashboard() {
           </Alert>
         )}
 
-        {/* Loading and fetch error states */}
+        
         {loading ? (
           <Box
             sx={{
@@ -394,7 +394,7 @@ function Dashboard() {
           <Alert severity="error">{error}</Alert>
         ) : (
           <>
-            {/* Dashboard statistics */}
+            
             <Box
               sx={{
                 display: "grid",
@@ -437,7 +437,7 @@ function Dashboard() {
               </Paper>
             </Box>
 
-            {/* Task heading and view controls */}
+           
             <Stack
               direction={{ xs: "column", sm: "row" }}
               justifyContent="space-between"
@@ -473,7 +473,7 @@ function Dashboard() {
               </Stack>
             </Stack>
 
-            {/* Task filters */}
+        
             <Stack
               direction="row"
               spacing={1}
